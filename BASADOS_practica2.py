@@ -21,8 +21,8 @@ sock = socket.socket(socket.AF_INET,  # internet
 # sock.sendto(MESSAGE, (UDP_IP,UDP_PORT)) #Message sending to the established IP and Port
 
 # read the wav file
-m = interp1d([-32768, 32768], [0, 65535])
-fs, data = wavfile.read('C:/rolon_gabo.wav')
+m = interp1d([0, 65535], [0, pow(2,12) -1])
+fs, data = wavfile.read('/media/francisco/OS/rolon_gabo.wav')
 
 number_of_samples = len(data)
 number_of_bytes = number_of_samples * 2  # total bytes; each sample has 16bits
@@ -54,16 +54,10 @@ for sample in range(0, int((number_of_bytes_final_transfer / 2) - 1)):
 Ftx = fs / max_samples_per_transfer
 Ttx = 1 / Ftx
 
+
+Mb = m(Mb)
 Mb = np.cast[np.uint16](Mb)
 
-"""""
-for n_block in range(0,complete_transfers-1):
-    sample: int
-    for sample in range(0,max_samples_per_transfer-1):
-      Mb[n_block, sample] = Mb[n_block, sample] + 32767
-    # end
-# end
-"""
 
 # PRUEBA, un solo bloque transmitido
 sock.sendto(Mb[0], (UDP_IP, UDP_PORT))  # Message sending to the established IP and Port
