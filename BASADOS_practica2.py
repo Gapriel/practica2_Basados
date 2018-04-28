@@ -22,12 +22,12 @@ sock = socket.socket(socket.AF_INET,  # internet
 
 # read the wav file
 m = interp1d([0, 65535], [0, pow(2,12) -1])
-fs, data = wavfile.read('/media/francisco/OS/rolon_gabo.wav')
+fs, data = wavfile.read('C:/Users/gabrielpc/Documents/python/rolon_gabo.wav')
 
 number_of_samples = len(data)
 number_of_bytes = number_of_samples * 2  # total bytes; each sample has 16bits
-max_bytes_per_transfer: int = 1500  # max amount of bytes to be transferred
-max_samples_per_transfer: int = int(max_bytes_per_transfer / 2)  # this is because each sample is of 16bits
+max_bytes_per_transfer = 1500  # max amount of bytes to be transferred
+max_samples_per_transfer = int(max_bytes_per_transfer / 2)  # this is because each sample is of 16bits
 
 complete_transfers = math.floor(number_of_bytes / max_bytes_per_transfer)  # the amount of blocks to be transferred
 number_of_bytes_final_transfer = number_of_bytes - complete_transfers * max_bytes_per_transfer
