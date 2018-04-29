@@ -29,6 +29,9 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
+#include "FreeRTOS.h"
+#include "event_groups.h"
+
 #include "tcpecho.h"
 
 #include "lwip/opt.h"
@@ -37,6 +40,104 @@
 
 #include "lwip/sys.h"
 #include "lwip/api.h"
+
+
+#define DAC_STATE (1<<0)
+
+extern QueueHandle_t port_selection;
+extern EventGroupHandle_t DAC_out_state;
+extern QueueHandle_t UDP_status_values;
+
+typedef struct{
+	uint16_t losses;
+	uint16_t received;
+	uint16_t relation;
+}UDP_val_t;
+
+static err_t tcp_printMenu(struct netconn * connection){
+	uint8_t * spacing5 = "\n\n\n\n\n";
+	spacing5 = (void*) spacing5;
+	uint8_t spacing5_length = 5;
+	uint8_t menus_length = 91;
+	uint8_t * menus = "WIRELESS K64 SPEAKERS\n\n1)Stop/play audio\n2)Select music source device\n3)Deploy comms stats\n";
+	menus = (void*) menus;
+	err_t err;
+    err = netconn_write(connection, menus, menus_length, NETCONN_COPY);
+	err = netconn_write(connection, spacing5, spacing5_length, NETCONN_COPY);
+	return err;
+}
+static err_t tcp_printSelector(struct netconn * connection){
+	uint8_t * spacing9 = "\n\n\n\n\n\n\n\n\n";
+	spacing9 = (void*) spacing9;
+	uint8_t spacing9_length = 9;
+	uint8_t * menu2 = "Type in the port\nyou want to listen to:";
+	uint8_t menu2_length = 39;
+	menu2 = (void*) menu2;
+	err_t err;
+	err = netconn_write(connection, menu2, menu2_length, NETCONN_COPY);
+	err = netconn_write(connection, spacing9, spacing9_length, NETCONN_COPY);
+	return err;
+}
+static err_t tcp_printUDPstatus(struct netconn * connection){
+	UDP_val_t  receiver_values ;//= pvPortMalloc(sizeof(UDP_val_t)); //TODO: quitar el malloc, es para pruebas
+	receiver_values.losses = 12345;
+	receiver_values.received = 23456;
+	receiver_values.relation = 34567;
+	//xQueueReceive(UDP_status_values,&receiver_values,portMAX_DELAY);
+	err_t err;
+	uint8_t * spacing = "\n\n\n\n\n\n\n";
+	spacing = (void*) spacing;
+	uint8_t spacing_length = 7;
+	uint8_t * menu3_1 = "comms stats\nUDP packs received per second: ";
+	uint8_t menu3_1_length = 43;
+	menu3_1 = (void*) menu3_1;
+	err = netconn_write(connection, menu3_1, menu3_1_length, NETCONN_COPY);
+	uint8_t value3_1[5];
+	value3_1[0] = (uint8_t)((receiver_values.received/10000)+'0');
+	value3_1[1] = (uint8_t)( ( (receiver_values.received - ((value3_1[0]-'0')*10000) ) /1000)+'0' );
+	value3_1[2] = ( (receiver_values.received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)) /100 )+'0';
+	value3_1[3] = ( (receiver_values.received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) ) /10 )+'0';
+	value3_1[4] = ( (receiver_values.received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) - ((value3_1[3]-'0')*10) ) )+'0';
+	//uint8_t value3_1_length = 5;
+	uint8_t value3_1_length = 5;
+	uint8_t *value3_1_casted = (void*) value3_1;
+	err = netconn_write(connection, value3_1_casted, value3_1_length, NETCONN_COPY);
+	uint8_t * menu3_2 = "\nUDP packs lost per second: ";
+	uint8_t menu3_2_length = 28;
+	menu3_2 = (void*) menu3_2;
+	err = netconn_write(connection, menu3_2, menu3_2_length, NETCONN_COPY);
+	uint8_t value3_2[5];
+	value3_2[0] = (receiver_values.losses/10000)+'0';
+	value3_2[1] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000) ) /1000)+'0';
+	value3_2[2] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)) /100 )+'0';
+	value3_2[3] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) ) /10 )+'0';
+	value3_2[4] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) - ((value3_2[3]-'0')*10) ) )+'0';
+	uint8_t value3_2_length = 5;
+	void *value3_2_casted = (void*) value3_2;
+	err = netconn_write(connection, value3_2_casted, value3_2_length, NETCONN_COPY);
+	uint8_t * menu3_3 = "\nUDP comm quality: ";
+	uint8_t menu3_3_length = 19;
+	menu3_3 = (void*) menu3_3;
+	err = netconn_write(connection, menu3_3, menu3_3_length, NETCONN_COPY);
+	uint8_t value3_3[5];
+	value3_3[0] = (receiver_values.relation/10000)+'0';
+	value3_3[1] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000) ) /1000)+'0';
+	value3_3[2] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)) /100 )+'0';
+	value3_3[3] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) ) /10 )+'0';
+	value3_3[4] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) - ((value3_3[3]-'0')*10) ) )+'0';
+	uint8_t value3_3_length = 5;
+	void *value3_3_casted = (void*) value3_3;
+	err = netconn_write(connection, value3_3_casted, value3_3_length, NETCONN_COPY);
+	err = netconn_write(connection, spacing, spacing_length, NETCONN_COPY);
+	//vPortFree(receiver_values);
+	return err;
+}
+
+typedef enum{
+	main_menu,
+	port_selector,
+	comm_status
+}menus_t;
 
 static void
 tcpecho_thread(void *arg)
@@ -72,73 +173,56 @@ tcpecho_thread(void *arg)
       u16_t len;
 
       if(0 == first_menu_print){
-    	  first_menu_print = 1;
-    	  uint8_t menus_length = 91;
-    	  uint8_t * menus = "WIRELESS K64 SPEAKERS\n\n1)Stop/play audio\n2)Select music source device\n3)Deploy comms stats\n";
-    	  menus = (void*)menus;
-    	  err = netconn_write(newconn, menus, menus_length, NETCONN_COPY);
+    	  err = tcp_printMenu(newconn);
       }
 
-
+      static uint8_t current_menu = main_menu;
+      static uint8_t MusicState = 1;
       while ((err = netconn_recv(newconn, &buf)) == ERR_OK) {	//while the client asks for data,
         /*printf("Recved\n");*/
-    	  uint8_t * spacing = "\n\n\n\n\n\n\n";
-    	  spacing = (void*) spacing;
-   		  uint8_t spacing_length = 7;
+
     	  do {
         	netbuf_data(buf, &data, &len);
+
         	uint8_t * data_casted = (uint8_t*)data;
-        	if(*data_casted == 'x'){
-        		uint8_t * spacing5 = "\n\n\n\n\n";
-        		spacing5 = (void*) spacing5;
-        		uint8_t spacing5_length = 5;
-        		uint8_t menus_length = 91;
-        	    uint8_t * menus = "WIRELESS K64 SPEAKERS\n\n1)Stop/play audio\n2)Select music source device\n3)Deploy comms stats\n";
-        		menus = (void*)menus;
-        		err = netconn_write(newconn, menus, menus_length, NETCONN_COPY);
-        		err = netconn_write(newconn, spacing5, spacing5_length, NETCONN_COPY);
-        	}
-        	if(*data_casted == '2'){
-        		uint8_t * spacing9 = "\n\n\n\n\n\n\n\n\n";
-        		spacing9 = (void*) spacing9;
-        		uint8_t spacing9_length = 9;
-        		uint8_t * menu2 = "Type in the port\nyou want to listen to:";
-        		uint8_t menu2_length = 39;
-        		menu2 = (void*)menu2;
-        		err = netconn_write(newconn, menu2,menu2_length, NETCONN_COPY);
-        		err = netconn_write(newconn, spacing9, spacing9_length, NETCONN_COPY);
+
+        	switch(*data_casted){
+        	case 'x':
+        		current_menu = main_menu;
+        		err = tcp_printMenu(newconn);
+        		break;
+        	case '1':
+        		if(1 == MusicState){ //if the state was previously on, turns it off
+        			xEventGroupClearBits(DAC_out_state, DAC_STATE);
+        			MusicState = 0;
+        		}else if(0 == MusicState){	//if the state was previously off, turns it on
+        			xEventGroupSetBits(DAC_out_state, DAC_STATE);
+        			MusicState = 1;
+        		}
+        		break;
+        	case '2':
+        		if(main_menu == current_menu || port_selector == current_menu){
+        			current_menu = port_selector;
+        			err = tcp_printSelector(newconn);
+        			netbuf_delete(buf);
+        			err = netconn_recv(newconn, &buf);
+        			uint8_t * port_casted = (uint8_t*)data;
+        			if('x' != *port_casted){
+        				uint16_t * port_transporter;
+        				port_transporter = pvPortMalloc(sizeof(uint16_t));
+        				*port_transporter = *port_casted;
+        				xQueueSend(port_selection,&port_transporter,100);	//sends the port selection to the UDP task
+        			}
+        		}
+        		break;
+        	case '3':
+        		if(main_menu == current_menu){
+        			current_menu = comm_status;
+        			err = tcp_printUDPstatus(newconn);
+        		}
+        		break;
         	}
 
-        	if(*data_casted == '3'){	//if the comm quality was selected,
-        		uint8_t * menu3_1 = "comms stats\nUDP packs received per second: ";
-        		uint8_t menu3_1_length = 43;
-        		menu3_1 = (void*)menu3_1;
-        		err = netconn_write(newconn, menu3_1,menu3_1_length, NETCONN_COPY);
-        		uint8_t value3_1 = " 3";
-        		uint8_t value3_1_length = 3;
-        		value3_1 = (void*)value3_1;
-        		err = netconn_write(newconn, value3_1,value3_1_length, NETCONN_COPY);
-        		uint8_t * menu3_2 = "\nUDP packs received per second: ";
-        	    uint8_t menu3_2_length = 32;
-        	    menu3_2 = (void*)menu3_2;
-        		err = netconn_write(newconn, menu3_2,menu3_2_length, NETCONN_COPY);
-        		uint8_t value3_2 = " 8";
-        		uint8_t value3_2_length = 3;
-        		value3_2 = (void*)value3_2;
-        		err = netconn_write(newconn, value3_2,value3_2_length, NETCONN_COPY);
-        		uint8_t * menu3_3 = "\nUDP comm quality: ";
-        		uint8_t menu3_3_length = 19;
-        		menu3_3 = (void*)menu3_3;
-        		err = netconn_write(newconn, menu3_3,menu3_3_length, NETCONN_COPY);
-        		uint8_t value3_3 = " 2";
-        		uint8_t value3_3_length = 3;
-        		value3_3 = (void*)value3_3;
-        		err = netconn_write(newconn, value3_3,value3_3_length, NETCONN_COPY);
-
-        		err = netconn_write(newconn, spacing, spacing_length, NETCONN_COPY);
-        	}
-             //netbuf_data(buf, &data, &len);
-             //err = netconn_write(newconn, data, len, NETCONN_COPY);
 #if 0
             if (err != ERR_OK) {
               printf("tcpecho: netconn_write: error \"%s\"\n", lwip_strerr(err));
