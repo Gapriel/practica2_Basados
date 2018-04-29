@@ -19,9 +19,10 @@ void PIT0_IRQHandler(void)
     if(pdFALSE == buffer_flag){
         DAC_SetBufferValue(DAC0, 0, buffer_cagazon[i]);
     }else{
+
         DAC_SetBufferValue(DAC0, 0, buffer2_cagazon[i]);
     }
-    i = (i < 748) ? i+1 : 0;
+    i = (i < 749) ? i+1 : 0;
 }
 
 

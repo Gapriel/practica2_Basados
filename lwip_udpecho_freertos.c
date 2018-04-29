@@ -92,13 +92,6 @@
 
 
 
-
-
-
-
-
-
-
 /* MAC address configuration. */
 #define configMAC_ADDR {0x02, 0x12, 0x13, 0x10, 0x15, 0x11}
 

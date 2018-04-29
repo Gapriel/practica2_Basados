@@ -17,4 +17,6 @@
 #include "FreeRTOS.h"
 
 
+void PIT_ConfigAndStart(uint32_t usecs);
+
 #endif

@@ -41,9 +41,9 @@
 #include "Audio.h"
 #define MAX_FS 44100
 #define DOWNSAMPLE 4
-uint16_t buffer_cagazon[2045] = {750};
-uint16_t buffer2_cagazon[2045] ={750};
-
+uint16_t buffer_cagazon[750] = {2045};
+uint16_t buffer2_cagazon[750] ={2045};
+extern uint8_t i;
 bool buffer_flag = pdFALSE;
 #define sec_prueba ((1/(MAX_FS/DOWNSAMPLE))* 1000000)
 
@@ -84,10 +84,10 @@ static void udpecho_thread(void *arg)
       /*  no need netconn_connect here, since the netbuf contains the address */
       if (pdFALSE == buffer_flag)
       {
-          buffer_flag = pdTRUE;
           if(netbuf_copy(buf, buffer_cagazon, sizeof(buffer_cagazon)) != buf->p->tot_len)
           {
            LWIP_DEBUGF(LWIP_DBG_ON, ("netbuf_copy failed\n"));
+           i=0;
           }
           else
           {
@@ -103,13 +103,16 @@ static void udpecho_thread(void *arg)
              //del DAC
               }
             }
+
+          buffer_flag = pdTRUE;
+          i = 0;
       }
       else
       {
-         buffer_flag = pdFALSE;
          if(netbuf_copy(buf, buffer2_cagazon, sizeof(buffer2_cagazon)) != buf->p->tot_len)
          {
           LWIP_DEBUGF(LWIP_DBG_ON, ("netbuf_copy failed\n"));
+          i=0;
          }
          else
          {
@@ -124,6 +127,9 @@ static void udpecho_thread(void *arg)
             //del DAC
          }
          }
+
+         buffer_flag = pdFALSE;
+         i = 0;
       }
       netbuf_delete(buf);
     }
