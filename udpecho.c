@@ -38,15 +38,22 @@
 
 #include "lwip/api.h"
 #include "lwip/sys.h"
+#include "Audio.h"
+#define MAX_FS 44100
+#define DOWNSAMPLE 4
+uint16_t buffer_cagazon[2045] = {750};
+uint16_t buffer2_cagazon[2045] ={750};
+
+bool buffer_flag = pdFALSE;
+#define sec_prueba ((1/(MAX_FS/DOWNSAMPLE))* 1000000)
+
+uint32_t usec = (uint32_t)(sec_prueba);
 
 /*-----------------------------------------------------------------------------------*/
 static void udpecho_thread(void *arg)
 {
   struct netconn *conn;
   struct netbuf *buf;
-  uint16_t buffer[750] ;
-  uint16_t buffer2[750] ;
-  uint16_t* buffer_p;
   err_t err;
   LWIP_UNUSED_ARG(arg);
 
@@ -70,7 +77,7 @@ static void udpecho_thread(void *arg)
   LWIP_ERROR("udpecho: join group is failed", (err == ERR_OK), return;);
 }
 #endif
-  static bool buffer_flag = pdFALSE;
+  AudioConfig(45);
   while (1) {
     err = netconn_recv(conn, &buf);
     if (err == ERR_OK) {
@@ -78,13 +85,12 @@ static void udpecho_thread(void *arg)
       if (pdFALSE == buffer_flag)
       {
           buffer_flag = pdTRUE;
-          if(netbuf_copy(buf, buffer, sizeof(buffer)) != buf->p->tot_len)
+          if(netbuf_copy(buf, buffer_cagazon, sizeof(buffer_cagazon)) != buf->p->tot_len)
           {
            LWIP_DEBUGF(LWIP_DBG_ON, ("netbuf_copy failed\n"));
           }
           else
           {
-              buffer[buf->p->tot_len] = '\0';
               err = netconn_send(conn, buf);
               if(err != ERR_OK)
               {
@@ -101,13 +107,12 @@ static void udpecho_thread(void *arg)
       else
       {
          buffer_flag = pdFALSE;
-         if(netbuf_copy(buf, buffer2, sizeof(buffer2)) != buf->p->tot_len)
+         if(netbuf_copy(buf, buffer2_cagazon, sizeof(buffer2_cagazon)) != buf->p->tot_len)
          {
           LWIP_DEBUGF(LWIP_DBG_ON, ("netbuf_copy failed\n"));
          }
          else
          {
-             buffer[buf->p->tot_len] = '\0';
              err = netconn_send(conn, buf);
          if(err != ERR_OK)
          {
