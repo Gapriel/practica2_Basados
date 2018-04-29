@@ -206,12 +206,17 @@ tcpecho_thread(void *arg)
         			err = tcp_printSelector(newconn);
         			netbuf_delete(buf);
         			err = netconn_recv(newconn, &buf);
-        			uint8_t * port_casted = (uint8_t*)data;
-        			if('x' != *port_casted){
+        			uint8_t read_port[10];
+        			netbuf_copy(buf,read_port,10);
+        			if('x' != read_port[0]){
+        				uint16_t new_port = ((read_port[0]-'0')*10000) + ((read_port[1]-'0')*1000) + ((read_port[2]-'0')*100) + ((read_port[1]-'0')*10) + (read_port[0]-'0');
         				uint16_t * port_transporter;
         				port_transporter = pvPortMalloc(sizeof(uint16_t));
-        				*port_transporter = *port_casted;
+        				*port_transporter = new_port;
         				xQueueSend(port_selection,&port_transporter,100);	//sends the port selection to the UDP task
+        			}else{
+        				current_menu = main_menu;
+        			    err = tcp_printMenu(newconn);
         			}
         		}
         		break;
