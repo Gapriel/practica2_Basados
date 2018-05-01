@@ -15,5 +15,5 @@
 
 void AudioConfig(uint32_t Tx);
 
-
+void AudioOutput(uint8_t ON_OFF);
 #endif /* AUDIO_H_ */

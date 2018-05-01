@@ -41,7 +41,7 @@
 #include "lwip/sys.h"
 #include "lwip/api.h"
 
-
+#include "Audio.h"
 #define DAC_STATE (1<<0)
 #define ON_UDP_MENU (1<<1)
 
@@ -196,10 +196,10 @@ tcpecho_thread(void *arg)
         		break;
         	case '1':
         		if(1 == MusicState){ //if the state was previously on, turns it off
-        			xEventGroupClearBits(WirelessSpeakers_events, DAC_STATE);
+        		    AudioOutput(1);
         			MusicState = 0;
         		}else if(0 == MusicState){	//if the state was previously off, turns it on
-        			xEventGroupSetBits(WirelessSpeakers_events, DAC_STATE);
+        			AudioOutput(0);
         			MusicState = 1;
         		}
         		break;

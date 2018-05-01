@@ -32,3 +32,14 @@ void AudioConfig(uint32_t Tx){
     PIT_ConfigAndStart(Tx);
 }
 
+
+void AudioOutput(uint8_t ON_OFF){
+    if(1 == ON_OFF){
+        PIT_StartTimer(PIT, kPIT_Chnl_0);
+        //PIT_ON
+    }else{
+        //PIT OFF
+        PIT_StopTimer(PIT, kPIT_Chnl_0);
+        DAC_SetBufferValue(DAC0, 0, 0);
+    }
+}
