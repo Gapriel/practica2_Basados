@@ -83,11 +83,11 @@ static err_t tcp_printSelector(struct netconn * connection){  	//returns the err
 }
 static err_t tcp_printUDPstatus(struct netconn * connection){  //this function prints the UDP status menu
 	xEventGroupSetBits(WirelessSpeakers_events, ON_UDP_MENU);	//sets the 'on menu' event in order to tell the queue sender function that it should send somenthing
-	UDP_val_t  receiver_values ;//= pvPortMalloc(sizeof(UDP_val_t)); //TODO: quitar el malloc, es para pruebas
-	receiver_values.losses = 12345;
-	receiver_values.received = 23456;
-	receiver_values.relation = 34567;
-	//xQueueReceive(UDP_status_values,&receiver_values,portMAX_DELAY);
+	UDP_val_t * receiver_values ;//= pvPortMalloc(sizeof(UDP_val_t)); //TODO: quitar el malloc, es para pruebas
+	//receiver_values.losses = 12345;
+	//receiver_values.received = 23456;
+	//receiver_values.relation = 34567;
+	xQueueReceive(UDP_status_values,&receiver_values,portMAX_DELAY);
 	err_t err;  //declares an error variable
 	uint8_t * spacing = "\n\n\n\n\n\n\n";  //string with enters in order to simulate a screen cleaning
 	spacing = (void*) spacing;  //casts the spacing string from pointer to uint8_t to void
@@ -97,11 +97,11 @@ static err_t tcp_printUDPstatus(struct netconn * connection){  //this function p
 	menu3_1 = (void*) menu3_1;   //casts the menu 3.1 string from pointer to uint8_t to void
 	err = netconn_write(connection, menu3_1, menu3_1_length, NETCONN_COPY);  //sends via tcp the menu 3 first line
 	uint8_t value3_1[5];  //declares an array where the UDP received packages value will be hold
-	value3_1[0] = (uint8_t)((receiver_values.received/10000)+'0');  //stores the tens of thousand of the UDP received value
-	value3_1[1] = (uint8_t)( ( (receiver_values.received - ((value3_1[0]-'0')*10000) ) /1000)+'0' );  //stores the thousands of the UDP received value
-	value3_1[2] = ( (receiver_values.received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)) /100 )+'0'; //stores the hundreds of the UDP received value
-	value3_1[3] = ( (receiver_values.received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP received value
-	value3_1[4] = ( (receiver_values.received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) - ((value3_1[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP received value
+	value3_1[0] = (uint8_t)((receiver_values->received/10000)+'0');  //stores the tens of thousand of the UDP received value
+	value3_1[1] = (uint8_t)( ( (receiver_values->received - ((value3_1[0]-'0')*10000) ) /1000)+'0' );  //stores the thousands of the UDP received value
+	value3_1[2] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)) /100 )+'0'; //stores the hundreds of the UDP received value
+	value3_1[3] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP received value
+	value3_1[4] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) - ((value3_1[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP received value
 	uint8_t value3_1_length = 5;  //defines a variable which holds the value3.1 character quantity
 	uint8_t *value3_1_casted = (void*) value3_1;	//casts the value 3.1 string from pointer to uint8_t to void
 	err = netconn_write(connection, value3_1_casted, value3_1_length, NETCONN_COPY);  //writes the value 3.1 through tcp
@@ -110,11 +110,11 @@ static err_t tcp_printUDPstatus(struct netconn * connection){  //this function p
 	menu3_2 = (void*) menu3_2;  //casts the menu 3.2 string from pointer to uint8_t to void
 	err = netconn_write(connection, menu3_2, menu3_2_length, NETCONN_COPY);  //sends via tcp the menu 3 second line
 	uint8_t value3_2[5];  //declares an array where the UDP lost packages value will be hold
-	value3_2[0] = (receiver_values.losses/10000)+'0';  //stores the tens of thousand of the UDP losses value
-	value3_2[1] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP losses value
-	value3_2[2] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)) /100 )+'0';  //stores the thousands of the UDP losses value
-	value3_2[3] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP losses value
-	value3_2[4] = ( (receiver_values.losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) - ((value3_2[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP losses value
+	value3_2[0] = (receiver_values->losses/10000)+'0';  //stores the tens of thousand of the UDP losses value
+	value3_2[1] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP losses value
+	value3_2[2] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)) /100 )+'0';  //stores the thousands of the UDP losses value
+	value3_2[3] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP losses value
+	value3_2[4] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) - ((value3_2[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP losses value
 	uint8_t value3_2_length = 5; //defines a variable which holds the value3.2 character quantity
 	void *value3_2_casted = (void*) value3_2;  //casts the value 3.2 string from pointer to uint8_t to void
 	err = netconn_write(connection, value3_2_casted, value3_2_length, NETCONN_COPY);  //writes the value 3.2 through tcp
@@ -123,16 +123,16 @@ static err_t tcp_printUDPstatus(struct netconn * connection){  //this function p
 	menu3_3 = (void*) menu3_3;  //casts the menu 3.3 string from pointer to uint8_t to void
 	err = netconn_write(connection, menu3_3, menu3_3_length, NETCONN_COPY);  //sends via tcp the menu 3 third line
 	uint8_t value3_3[5];  //declares an array where the UDP relation packages value will be hold
-	value3_3[0] = (receiver_values.relation/10000)+'0'; //stores the tens of thousand of the UDP relation value
-	value3_3[1] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP relation value
-	value3_3[2] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)) /100 )+'0'; //stores the thousands of the UDP relation value
-	value3_3[3] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP relation value
-	value3_3[4] = ( (receiver_values.relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) - ((value3_3[3]-'0')*10) ) )+'0'; //stores the units of thousand of the UDP relation value
+	value3_3[0] = (receiver_values->relation/10000)+'0'; //stores the tens of thousand of the UDP relation value
+	value3_3[1] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP relation value
+	value3_3[2] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)) /100 )+'0'; //stores the thousands of the UDP relation value
+	value3_3[3] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP relation value
+	value3_3[4] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) - ((value3_3[3]-'0')*10) ) )+'0'; //stores the units of thousand of the UDP relation value
 	uint8_t value3_3_length = 5;  //defines a variable which holds the value3.3 character quantity
 	void *value3_3_casted = (void*) value3_3;  //casts the value 3.3 string from pointer to uint8_t to void
 	err = netconn_write(connection, value3_3_casted, value3_3_length, NETCONN_COPY);   //writes the value 3.3 through tcp
 	err = netconn_write(connection, spacing, spacing_length, NETCONN_COPY);  //sends via tcp the spacing string to clear the string
-	//vPortFree(receiver_values);
+	vPortFree(receiver_values);
 	return err;  //returns the error variable to know if there was a mistake
 }
 
