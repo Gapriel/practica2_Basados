@@ -40,6 +40,7 @@
 
 #include "event_groups.h"
 
+#define LWIP_NETCONN 1
 
 #if LWIP_NETCONN
 
@@ -176,11 +177,6 @@ QueueHandle_t port_selection; /* Queue used for the port selected */
 QueueHandle_t UDP_status_values; /* Queue used for the port selected */
 EventGroupHandle_t WirelessSpeakers_events;
 
-typedef struct{
-    uint16_t lossses;
-    uint16_t received;
-    uint16_t relation;
-}UDP_val_t;
 
 int main(void)
 {

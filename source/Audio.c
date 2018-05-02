@@ -15,7 +15,6 @@ extern uint16_t buffer2[audio_buffer_sizes] ;
 uint16_t i = 0;
 extern bool buffer_flag ;
 
-
 void PIT0_IRQHandler(void)
 {
     /* Clear interrupt flag.*/
@@ -31,9 +30,12 @@ void PIT0_IRQHandler(void)
 
 
 
+
+
 void AudioConfig(uint32_t Tx){
     DAC_Config();
-    PIT_ConfigAndStart(Tx);
+    PIT_ConfigAndStart(0,Tx);
+    PIT_ConfigAndStart(1, 1000);
 }
 
 
