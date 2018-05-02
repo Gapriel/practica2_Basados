@@ -7,22 +7,26 @@
 #include "Audio.h"
 #include "FreeRTOS.h"
 
-extern uint16_t buffer_cagazon[750] ;
-extern uint16_t buffer2_cagazon[750] ;
+
+
+extern uint16_t buffer1[audio_buffer_sizes] ;
+extern uint16_t buffer2[audio_buffer_sizes] ;
 
 uint16_t i = 0;
 extern bool buffer_flag ;
+
+
 void PIT0_IRQHandler(void)
 {
     /* Clear interrupt flag.*/
     PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, kPIT_TimerFlag);
     if(pdFALSE == buffer_flag){
-        DAC_SetBufferValue(DAC0, 0, buffer_cagazon[i]);
+        DAC_SetBufferValue(DAC0, 0, buffer1[i]);
     }else{
 
-        DAC_SetBufferValue(DAC0, 0, buffer2_cagazon[i]);
+        DAC_SetBufferValue(DAC0, 0, buffer2[i]);
     }
-    i = (i < 749) ? i+1 : 0;
+    i = (i < audio_buffer_sizes -1) ? i+1 : 0;
 }
 
 

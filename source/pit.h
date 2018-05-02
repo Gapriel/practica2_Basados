@@ -16,6 +16,14 @@
 #include "clock_config.h"
 #include "FreeRTOS.h"
 
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+/*!
+    \brief  Configures and start a PIT timer
+     \param[in] usecs time in microseconds for the period of PIT0
+    \return void
+ */
 
 void PIT_ConfigAndStart(uint32_t usecs);
 
