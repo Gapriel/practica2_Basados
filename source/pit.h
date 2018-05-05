@@ -25,6 +25,6 @@
     \return void
  */
 
-void PIT_ConfigAndStart(uint8_t channel, uint32_t usecs);
+void PIT_ConfigAndStart(uint32_t usecs);
 
 #endif

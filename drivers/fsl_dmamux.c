@@ -32,50 +32,66 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "pit.h"
+#include "fsl_dmamux.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
 
-#define PIT_IRQ_ID PIT0_IRQn
-/* Get source clock for PIT driver */
-#define LED_INIT() LED_RED_INIT(LOGIC_LED_ON)
-#define LED_TOGGLE() LED_RED_TOGGLE()
+/*******************************************************************************
+ * Prototypes
+ ******************************************************************************/
 
+/*!
+ * @brief Get instance number for DMAMUX.
+ *
+ * @param base DMAMUX peripheral base address.
+ */
+static uint32_t DMAMUX_GetInstance(DMAMUX_Type *base);
 
+/*******************************************************************************
+ * Variables
+ ******************************************************************************/
+
+/*! @brief Array to map DMAMUX instance number to base pointer. */
+static DMAMUX_Type *const s_dmamuxBases[] = DMAMUX_BASE_PTRS;
+
+#if !(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL)
+/*! @brief Array to map DMAMUX instance number to clock name. */
+static const clock_ip_name_t s_dmamuxClockName[] = DMAMUX_CLOCKS;
+#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
 
 /*******************************************************************************
  * Code
  ******************************************************************************/
-
-
-/*!
- * @brief Main function
- */
-void PIT_ConfigAndStart(uint32_t usecs)
+static uint32_t DMAMUX_GetInstance(DMAMUX_Type *base)
 {
-    /* Structure of initialize PIT */
-    pit_config_t pitConfig;
+    uint32_t instance;
 
-    /*
-     * pitConfig.enableRunInDebug = false;
-     */
-    PIT_GetDefaultConfig(&pitConfig);
+    /* Find the instance index from base address mappings. */
+    for (instance = 0; instance < ARRAY_SIZE(s_dmamuxBases); instance++)
+    {
+        if (s_dmamuxBases[instance] == base)
+        {
+            break;
+        }
+    }
 
-    /* Init pit module */
-    PIT_Init(PIT, &pitConfig);
+    assert(instance < ARRAY_SIZE(s_dmamuxBases));
 
-    /* Set timer period for channel 0 */
-    uint32_t PIT_SOURCE_CLOCK = CLOCK_GetFreq(kCLOCK_BusClk);
-    PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, USEC_TO_COUNT(usecs, CLOCK_GetFreq(kCLOCK_BusClk)));
+    return instance;
+}
 
-    /* Enable timer interrupts for channel 0 */
-    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
+void DMAMUX_Init(DMAMUX_Type *base)
+{
+#if !(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL)
+    CLOCK_EnableClock(s_dmamuxClockName[DMAMUX_GetInstance(base)]);
+#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
+}
 
-    /* Enable at the NVIC */
-    EnableIRQ(PIT_IRQ_ID);
-
-    /* Start channel 0 */
-    PIT_StartTimer(PIT, kPIT_Chnl_0);
+void DMAMUX_Deinit(DMAMUX_Type *base)
+{
+#if !(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL)
+    CLOCK_DisableClock(s_dmamuxClockName[DMAMUX_GetInstance(base)]);
+#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
 }

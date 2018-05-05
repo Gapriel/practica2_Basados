@@ -6,6 +6,7 @@
  */
 #include "Audio.h"
 #include "FreeRTOS.h"
+#include "semphr.h"
 
 
 
@@ -14,28 +15,41 @@ extern uint16_t buffer2[audio_buffer_sizes] ;
 
 uint16_t i = 0;
 extern bool buffer_flag ;
+bool i_flag = pdFALSE;
+
+
+extern uint16_t* DAC_buffer;
+extern uint16_t* Alternative_buffer;
+extern uint8_t bussy_buffer;
+
+
+extern uint8_t buffer_to_use ;
 
 void PIT0_IRQHandler(void)
 {
-    /* Clear interrupt flag.*/
     PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, kPIT_TimerFlag);
-    if(pdFALSE == buffer_flag){
-        DAC_SetBufferValue(DAC0, 0, buffer1[i]);
-    }else{
-
-        DAC_SetBufferValue(DAC0, 0, buffer2[i]);
+    DAC_SetBufferValue(DAC0, 0, DAC_buffer[i]);
+    i = (i < audio_buffer_sizes -1 ) ? i+1 : 0;
+    if(i == 0){
+        if(buffer_to_use == 1){
+            DAC_buffer = buffer1;
+            bussy_buffer = 1;
+        }else{
+            DAC_buffer = buffer2;
+            bussy_buffer = 2;
+        }
     }
-    i = (i < audio_buffer_sizes -1) ? i+1 : 0;
 }
 
 
-
-
-
+uint8_t started = 0;
 void AudioConfig(uint32_t Tx){
-    DAC_Config();
-    PIT_ConfigAndStart(0,Tx);
-    PIT_ConfigAndStart(1, 1000);
+
+    if(0 == started){
+        DAC_Config();
+        PIT_ConfigAndStart(Tx);
+        started = 1;
+    }
 }
 
 
