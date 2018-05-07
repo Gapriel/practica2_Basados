@@ -21,10 +21,10 @@
 /********************************************************************************************/
 /*!
     \brief  Configures and start a PIT timer
-     \param[in] usecs time in microseconds for the period of PIT0
+     \param[in] Fs frecuency of PIT0
     \return void
  */
 
-void PIT_ConfigAndStart(uint32_t usecs);
+void PIT_ConfigAndStart(uint8_t channel,uint32_t Fs);
 
 #endif

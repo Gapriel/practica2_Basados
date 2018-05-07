@@ -33,6 +33,14 @@
 #define LWIP_UDPECHO_H
 
 
+#include "stdint.h"
+
+typedef struct{
+    uint16_t losses;    //losses UDP value
+    uint16_t received;  //received UDP value
+    uint16_t relation;  //relation UDP value
+}UDP_val_t;   //UDP status menu values struct type
+
 /********************************************************************************************/
 /********************************************************************************************/
 /********************************************************************************************/

@@ -30,6 +30,7 @@
  *
  */
 #include <TCP/TCP.h>
+#include <UDP/UDP.h>
 #include "FreeRTOS.h"
 #include "event_groups.h"
 
@@ -48,12 +49,7 @@ extern QueueHandle_t port_selection;  //queue used for storing the new port to l
 extern EventGroupHandle_t WirelessSpeakers_events;  //event group used with the ON_UDP_MENU to know
 													//if the user is asking for the UDP status menu
 extern QueueHandle_t UDP_status_values;  //queue used for storing the UDP status values
-
-typedef struct{
-	uint16_t losses;    //losses UDP value
-	uint16_t received;  //received UDP value
-	uint16_t relation;  //relation UDP value
-}UDP_val_t;   //UDP status menu values struct type
+extern pit1flag;
 
 static err_t tcp_printMenu(struct netconn * connection){  //this function sends by tcp the main menu
 	xEventGroupClearBits(WirelessSpeakers_events, ON_UDP_MENU);	//clears the 'on menu' event in order to tell the queue sender function that it shouldn't send somenthing
@@ -80,60 +76,61 @@ static err_t tcp_printSelector(struct netconn * connection){  	//returns the err
 	err = netconn_write(connection, spacing9, spacing9_length, NETCONN_COPY);  //sends via tcp the spacing5 string to clear the string
 	return err;  //returns the error variable to know if there was a mistake
 }
-static err_t tcp_printUDPstatus(struct netconn * connection){  //this function prints the UDP status menu
-	xEventGroupSetBits(WirelessSpeakers_events, ON_UDP_MENU);	//sets the 'on menu' event in order to tell the queue sender function that it should send somenthing
-	UDP_val_t * receiver_values ;//= pvPortMalloc(sizeof(UDP_val_t)); //TODO: quitar el malloc, es para pruebas
-	//receiver_values.losses = 12345;
-	//receiver_values.received = 23456;
-	//receiver_values.relation = 34567;
-	xQueueReceive(UDP_status_values,&receiver_values,portMAX_DELAY);
-	err_t err;  //declares an error variable
-	uint8_t * spacing = "\n\n\n\n\n\n\n";  //string with enters in order to simulate a screen cleaning
-	spacing = (void*) spacing;  //casts the spacing string from pointer to uint8_t to void
-	uint8_t spacing_length = 7;  //defines a variable which holds the spacing character quantity
-	uint8_t * menu3_1 = "comms stats\nUDP packs received per second: ";  //the menu first line to be printed for the user
-	uint8_t menu3_1_length = 43;  //defines a variable which holds the menus3.1 character quantity
-	menu3_1 = (void*) menu3_1;   //casts the menu 3.1 string from pointer to uint8_t to void
-	err = netconn_write(connection, menu3_1, menu3_1_length, NETCONN_COPY);  //sends via tcp the menu 3 first line
-	uint8_t value3_1[5];  //declares an array where the UDP received packages value will be hold
-	value3_1[0] = (uint8_t)((receiver_values->received/10000)+'0');  //stores the tens of thousand of the UDP received value
-	value3_1[1] = (uint8_t)( ( (receiver_values->received - ((value3_1[0]-'0')*10000) ) /1000)+'0' );  //stores the thousands of the UDP received value
-	value3_1[2] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)) /100 )+'0'; //stores the hundreds of the UDP received value
-	value3_1[3] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP received value
-	value3_1[4] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) - ((value3_1[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP received value
-	uint8_t value3_1_length = 5;  //defines a variable which holds the value3.1 character quantity
-	uint8_t *value3_1_casted = (void*) value3_1;	//casts the value 3.1 string from pointer to uint8_t to void
-	err = netconn_write(connection, value3_1_casted, value3_1_length, NETCONN_COPY);  //writes the value 3.1 through tcp
-	uint8_t * menu3_2 = "\nUDP packs lost per second: ";  //the menu second line to be printed for the user
-	uint8_t menu3_2_length = 28;  //defines a variable which holds the menus3.2 character quantity
-	menu3_2 = (void*) menu3_2;  //casts the menu 3.2 string from pointer to uint8_t to void
-	err = netconn_write(connection, menu3_2, menu3_2_length, NETCONN_COPY);  //sends via tcp the menu 3 second line
-	uint8_t value3_2[5];  //declares an array where the UDP lost packages value will be hold
-	value3_2[0] = (receiver_values->losses/10000)+'0';  //stores the tens of thousand of the UDP losses value
-	value3_2[1] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP losses value
-	value3_2[2] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)) /100 )+'0';  //stores the thousands of the UDP losses value
-	value3_2[3] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP losses value
-	value3_2[4] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) - ((value3_2[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP losses value
-	uint8_t value3_2_length = 5; //defines a variable which holds the value3.2 character quantity
-	void *value3_2_casted = (void*) value3_2;  //casts the value 3.2 string from pointer to uint8_t to void
-	err = netconn_write(connection, value3_2_casted, value3_2_length, NETCONN_COPY);  //writes the value 3.2 through tcp
-	uint8_t * menu3_3 = "\nUDP comm quality: ";  //the menu third line to be printed for the user
-	uint8_t menu3_3_length = 19; //defines a variable which holds the menus3.3 character quantity
-	menu3_3 = (void*) menu3_3;  //casts the menu 3.3 string from pointer to uint8_t to void
-	err = netconn_write(connection, menu3_3, menu3_3_length, NETCONN_COPY);  //sends via tcp the menu 3 third line
-	uint8_t value3_3[5];  //declares an array where the UDP relation packages value will be hold
-	value3_3[0] = (receiver_values->relation/10000)+'0'; //stores the tens of thousand of the UDP relation value
-	value3_3[1] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP relation value
-	value3_3[2] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)) /100 )+'0'; //stores the thousands of the UDP relation value
-	value3_3[3] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP relation value
-	value3_3[4] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) - ((value3_3[3]-'0')*10) ) )+'0'; //stores the units of thousand of the UDP relation value
-	uint8_t value3_3_length = 5;  //defines a variable which holds the value3.3 character quantity
-	void *value3_3_casted = (void*) value3_3;  //casts the value 3.3 string from pointer to uint8_t to void
-	err = netconn_write(connection, value3_3_casted, value3_3_length, NETCONN_COPY);   //writes the value 3.3 through tcp
-	err = netconn_write(connection, spacing, spacing_length, NETCONN_COPY);  //sends via tcp the spacing string to clear the string
-	vPortFree(receiver_values);
-	return err;  //returns the error variable to know if there was a mistake
+err_t tcp_printUDPstatus(struct netconn * connection){  //this function prints the UDP status menu
+		xEventGroupSetBits(WirelessSpeakers_events, ON_UDP_MENU);	//sets the 'on menu' event in order to tell the queue sender function that it should send somenthing
+			UDP_val_t * receiver_values ;//= pvPortMalloc(sizeof(UDP_val_t));
+			//receiver_values.losses = 12345;
+			//receiver_values.received = 23456;
+			//receiver_values.relation = 34567;
+			xQueueReceive(UDP_status_values,&receiver_values,portMAX_DELAY);
+			err_t err;  //declares an error variable
+			uint8_t * spacing = "\n\n\n\n\n\n\n";  //string with enters in order to simulate a screen cleaning
+			spacing = (void*) spacing;  //casts the spacing string from pointer to uint8_t to void
+			uint8_t spacing_length = 7;  //defines a variable which holds the spacing character quantity
+			uint8_t * menu3_1 = "comms stats\nUDP packs received per second: ";  //the menu first line to be printed for the user
+			uint8_t menu3_1_length = 43;  //defines a variable which holds the menus3.1 character quantity
+			menu3_1 = (void*) menu3_1;   //casts the menu 3.1 string from pointer to uint8_t to void
+			err = netconn_write(connection, menu3_1, menu3_1_length, NETCONN_COPY);  //sends via tcp the menu 3 first line
+			uint8_t value3_1[5];  //declares an array where the UDP received packages value will be hold
+			value3_1[0] = (uint8_t)((receiver_values->received/10000)+'0');  //stores the tens of thousand of the UDP received value
+			value3_1[1] = (uint8_t)( ( (receiver_values->received - ((value3_1[0]-'0')*10000) ) /1000)+'0' );  //stores the thousands of the UDP received value
+			value3_1[2] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)) /100 )+'0'; //stores the hundreds of the UDP received value
+			value3_1[3] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP received value
+			value3_1[4] = ( (receiver_values->received - ((value3_1[0]-'0')*10000)-((value3_1[1]-'0')*1000)- ((value3_1[2]-'0')*100) - ((value3_1[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP received value
+			uint8_t value3_1_length = 5;  //defines a variable which holds the value3.1 character quantity
+			uint8_t *value3_1_casted = (void*) value3_1;	//casts the value 3.1 string from pointer to uint8_t to void
+			err = netconn_write(connection, value3_1_casted, value3_1_length, NETCONN_COPY);  //writes the value 3.1 through tcp
+			uint8_t * menu3_2 = "\nUDP packs lost per second: ";  //the menu second line to be printed for the user
+			uint8_t menu3_2_length = 28;  //defines a variable which holds the menus3.2 character quantity
+			menu3_2 = (void*) menu3_2;  //casts the menu 3.2 string from pointer to uint8_t to void
+			err = netconn_write(connection, menu3_2, menu3_2_length, NETCONN_COPY);  //sends via tcp the menu 3 second line
+			uint8_t value3_2[5];  //declares an array where the UDP lost packages value will be hold
+			value3_2[0] = (receiver_values->losses/10000)+'0';  //stores the tens of thousand of the UDP losses value
+			value3_2[1] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP losses value
+			value3_2[2] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)) /100 )+'0';  //stores the thousands of the UDP losses value
+			value3_2[3] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP losses value
+			value3_2[4] = ( (receiver_values->losses - ((value3_2[0]-'0')*10000)-((value3_2[1]-'0')*1000)- ((value3_2[2]-'0')*100) - ((value3_2[3]-'0')*10) ) )+'0';  //stores the units of thousand of the UDP losses value
+			uint8_t value3_2_length = 5; //defines a variable which holds the value3.2 character quantity
+			void *value3_2_casted = (void*) value3_2;  //casts the value 3.2 string from pointer to uint8_t to void
+			err = netconn_write(connection, value3_2_casted, value3_2_length, NETCONN_COPY);  //writes the value 3.2 through tcp
+			uint8_t * menu3_3 = "\nUDP comm quality: ";  //the menu third line to be printed for the user
+			uint8_t menu3_3_length = 19; //defines a variable which holds the menus3.3 character quantity
+			menu3_3 = (void*) menu3_3;  //casts the menu 3.3 string from pointer to uint8_t to void
+			err = netconn_write(connection, menu3_3, menu3_3_length, NETCONN_COPY);  //sends via tcp the menu 3 third line
+			uint8_t value3_3[5];  //declares an array where the UDP relation packages value will be hold
+			value3_3[0] = (receiver_values->relation/10000)+'0'; //stores the tens of thousand of the UDP relation value
+			value3_3[1] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000) ) /1000)+'0';  //stores the thousands of the UDP relation value
+			value3_3[2] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)) /100 )+'0'; //stores the thousands of the UDP relation value
+			value3_3[3] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) ) /10 )+'0';  //stores the tens of the UDP relation value
+			value3_3[4] = ( (receiver_values->relation - ((value3_3[0]-'0')*10000)-((value3_3[1]-'0')*1000)- ((value3_3[2]-'0')*100) - ((value3_3[3]-'0')*10) ) )+'0'; //stores the units of thousand of the UDP relation value
+			uint8_t value3_3_length = 5;  //defines a variable which holds the value3.3 character quantity
+			void *value3_3_casted = (void*) value3_3;  //casts the value 3.3 string from pointer to uint8_t to void
+			err = netconn_write(connection, value3_3_casted, value3_3_length, NETCONN_COPY);   //writes the value 3.3 through tcp
+			err = netconn_write(connection, spacing, spacing_length, NETCONN_COPY);  //sends via tcp the spacing string to clear the string
+			//vPortFree(receiver_values);
+			return err;  //returns the error variable to know if there was a mistake
 }
+
 
 typedef enum{
 	main_menu,   //0
@@ -141,13 +138,14 @@ typedef enum{
 	comm_status  //2
 }menus_t; //enum used to identify the menu to be printed
 
+struct netconn * newconn;
+TaskHandle_t UDPStatus;
 static void
 tcp_thread(void *arg)
 {  //this function handles the TCP communication
-  struct netconn *conn, *newconn;  //socket-type variable are declared
+  struct netconn *conn;  //socket-type variable are declared
   err_t err;  //declares an error variable
   LWIP_UNUSED_ARG(arg);  //consumes the input argument (just for portability)
-
   /* Create a new connection identifier. */
   /* Bind connection to well known port number 7. */
 #if LWIP_IPV6
@@ -176,6 +174,8 @@ tcp_thread(void *arg)
 
       if(0 == first_menu_print){  //if it's the initial menu execution, i.e at connection start,
     	  err = tcp_printMenu(newconn);  //prints the main menu
+    	 // xTaskCreate(UDPprinter_caller_task, "UDP status menu printer", configMINIMAL_STACK_SIZE, (void*)newconn, 3, &UDPStatus);
+    	  //vTaskSuspend(UDPStatus);
       }
 
       static uint8_t current_menu = main_menu;  //defines a variable used to know the present menu,
@@ -192,6 +192,7 @@ tcp_thread(void *arg)
         	case 'x':  //in the case where the user wants to return to the main menu,
         		current_menu = main_menu;  //sets the current_menu variable to main menu
         		err = tcp_printMenu(newconn);  //prints the main menu
+        		//vTaskSuspend(UDPStatus);
         		break;
         	case '1':  //in the case the user selects the first menu,
         		if(1 == MusicState){ //if the state was previously on, turns it off
@@ -226,7 +227,8 @@ tcp_thread(void *arg)
         		}
         		break;
         	case '3':  //in the case the user selects the third menu,
-        		if(main_menu == current_menu){  //if the user is calling to enter this menu from the main menu,
+        		if(main_menu == current_menu || port_selector == current_menu){  //if the user is calling to enter this menu from the main menu,
+        			//vTaskResume(UDPStatus);
         			current_menu = comm_status;  //the current menu is set to comm status
         			err = tcp_printUDPstatus(newconn); //prints the UDP status menu
         		}
@@ -253,7 +255,7 @@ tcp_thread(void *arg)
 void
 TCP_init(void)
 {
-  sys_thread_new("tcp_thread", tcp_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
+  sys_thread_new("tcp_thread", tcp_thread, NULL, DEFAULT_THREAD_STACKSIZE, 2);
 }
 /*-----------------------------------------------------------------------------------*/
 

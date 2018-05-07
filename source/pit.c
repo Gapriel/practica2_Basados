@@ -39,21 +39,19 @@
  ******************************************************************************/
 
 #define PIT_IRQ_ID PIT0_IRQn
+
+#define PIT_IRQ_ID2 PIT1_IRQn
+
 /* Get source clock for PIT driver */
-#define LED_INIT() LED_RED_INIT(LOGIC_LED_ON)
-#define LED_TOGGLE() LED_RED_TOGGLE()
-
-
 
 /*******************************************************************************
  * Code
  ******************************************************************************/
 
-
 /*!
  * @brief Main function
  */
-void PIT_ConfigAndStart(uint32_t usecs)
+void PIT_ConfigAndStart(uint8_t channel,uint32_t Fs)
 {
     /* Structure of initialize PIT */
     pit_config_t pitConfig;
@@ -68,14 +66,31 @@ void PIT_ConfigAndStart(uint32_t usecs)
 
     /* Set timer period for channel 0 */
     uint32_t PIT_SOURCE_CLOCK = CLOCK_GetFreq(kCLOCK_BusClk);
-    PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, USEC_TO_COUNT(usecs, CLOCK_GetFreq(kCLOCK_BusClk)));
+    float counts_for_pit = PIT_SOURCE_CLOCK / Fs;
+    uint32_t counts = (uint32_t) counts_for_pit;
+    if (kPIT_Chnl_0 == channel)
+    {
+        PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, counts + 11);
 
-    /* Enable timer interrupts for channel 0 */
-    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
+        /* Enable timer interrupts for channel 0 */
+        PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
 
-    /* Enable at the NVIC */
-    EnableIRQ(PIT_IRQ_ID);
+        /* Enable at the NVIC */
+        EnableIRQ(PIT_IRQ_ID);
 
-    /* Start channel 0 */
-    PIT_StartTimer(PIT, kPIT_Chnl_0);
+        /* Start channel 0 */
+        PIT_StartTimer(PIT, kPIT_Chnl_0);
+
+    } else if (kPIT_Chnl_1 == channel)
+    {
+        PIT_SetTimerPeriod(PIT, kPIT_Chnl_1,MSEC_TO_COUNT(1000, CLOCK_GetFreq(kCLOCK_BusClk)));
+        /* Enable timer interrupts for channel 0 */
+        PIT_EnableInterrupts(PIT, kPIT_Chnl_1, kPIT_TimerInterruptEnable);
+        /* Enable at the NVIC */
+        EnableIRQ(PIT_IRQ_ID2);
+        NVIC_SetPriority(PIT_IRQ_ID2, 3);
+        /* Start channel 0 */
+        PIT_StartTimer(PIT, kPIT_Chnl_1);
+    }
+
 }

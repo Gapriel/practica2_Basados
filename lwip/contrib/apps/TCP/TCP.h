@@ -33,6 +33,8 @@
 #ifndef LWIP_TCP_H
 #define LWIP_TCP_H
 
+#include "err.h"
+
 void TCP_init(void);
 
 #endif /* LWIP_TCPECHO_H */
